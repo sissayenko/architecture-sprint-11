@@ -1,0 +1,103 @@
+@startuml C4-container
+!include <C4/C4_Component>
+!include <C4/C4_Container>
+
+title Контейнерная диаграмма C4 для архитектуры системы через год
+
+Person(Client, "Клиент", "Пользователь финансовых услуг")
+Person(Doc, "Врач", "Использует медицинские данные для диагностики и лечения")
+Person(Admin, "Администратор", "Управляет данными и отчётами")
+
+System_Boundary(company, "Компания Будущее 2.0") {
+
+    System(IdP, "Keycloak", "Сервер аутентификации и авторизации")
+
+
+    Container(api_gateway, "Back-end for front-end", "KrakenD", "Единая точка доступа к данным и сервисам")
+
+    Rel_R(api_gateway, IdP, "Использует для аутентификации и авторизации")
+
+
+    Component(fintech_system, "Финтех-система", "Golang, Java", "Финансовые услуги и управление счетами") {
+        Container(fintech_fe, "Клиентское приложение", "React Native", "")
+        Container(fintech_be, "Бэкенд финтех-системы", "Golang, Java", "Бэкенд для финансовых операций")
+        ContainerDb(fintech_db, "БД финтех-системы", "PostgreSQL", "Хранение данных о клиентах и операциях")
+
+    }
+
+    Rel_D(fintech_fe, api_gateway,"HTTPS", "REST API")
+    Rel_D(api_gateway, fintech_be, "HTTPS", "REST API")
+    Rel_D(fintech_be, fintech_db, "JDBC", "SQL")
+
+    Component(his, "Медицинская система", "Управление медицинскими записями, клиниками и персоналом") {
+        Container(his_fe, "Клиентское приложение", "React Native", "")
+        Container(his_be, "Бэкенд медицинской системы", "Golang, Java", "Бэкенд для управления медицинскими данными")
+        ContainerDb(his_db, "БД медицинской системы", "PostgreSQL", "Хранение данных о пациентах и медицинских записях")
+        Container(gw, "API Gateway", "KrakenD", "Единая точка доступа к медицинским данным и сервисам для внешних систем")
+    }
+
+    Rel_D(his_fe, api_gateway, "HTTPS", "REST API")
+
+    Rel_D(api_gateway, his_be, "HTTPS", "REST API")
+    Rel_D(his_be, his_db, "JDBC", "SQL")
+
+
+    SystemQueue(integration_bus, "Integration Bus", "Kafka", "Гибкая интеграция и потоковая обработка данных")
+
+    Rel_D(Client, fintech_fe, "Использует для доступа к данным и сервисам")
+    Rel_D(Doc, his_fe, "Использует для доступа к данным и сервисам")
+
+    Rel_D(fintech_be, integration_bus, "", "")
+    Rel_D(his_be, integration_bus, "", "")
+
+    Component(ai_system, "ИИ-система", "Python", "Обработка медицинских данных и аналитика") {
+        Container(ai_fe, "Клиентское приложение", "React Native", "")
+        Container(ai_be, "Бэкенд ИИ-системы", "Python", "Бэкенд для обработки медицинских данных")
+        ContainerDb(ai_db, "БД ИИ-системы", "ClickHouse", "Хранение данных для обучения моделей")
+    }
+
+    Rel_D(ai_fe, api_gateway, "HTTPS", "REST API")
+    Rel_D( api_gateway, ai_be, "HTTPS", "REST API")
+    Rel_D(ai_be, ai_db, "JDBC", "SQL")
+
+    Component(dwh, "DWH", "Hadoop, Spark", "Оптимизированное хранилище данных и обработка больших данных") {
+        Container(data_ingest, "Data Ingestion", "Spark", "Загрузка и обработка данных")
+        Container(data_lake, "Data Lake", "HDFS", "Хранилище разнородных данных")
+        Container(data_marts, "Data Marts", "Hive", "Специализированные витрины данных")
+    }
+    Container(data_lake, "Data Lake", "Хранилище разнородных данных", "Медицинские, финансовые и другие данные")
+    Component(bi_platform, "Портал самообслуживания BI Platform", "Tableau, Metabase", "Самообслуживание и конструктор отчётов")
+
+}
+
+Lay_D(his, dwh)
+Lay_D(fintech_system, dwh)
+
+Rel_U(data_ingest, his_be,"", "")
+Rel_U(data_ingest, fintech_be,"", "")
+Rel_R(data_ingest, integration_bus, "", "")
+Rel_D(data_ingest, data_lake,"", "")
+Rel_D(data_lake, data_marts,"", "")
+
+Rel_L(bi_platform, data_marts, "", "")
+
+Rel_D(Client, bi_platform, "Использует для доступа к отчетам")
+Rel_D(Doc, bi_platform, "Использует для доступа к отчетам")
+
+Rel_D(ai_be, data_marts, "Чтение данных")
+
+Rel_D(Admin, bi_platform, "Использует для построения отчётов")
+
+Rel_D(Client, ai_fe, "Использует для доступа к аналитике")
+Rel_D(Doc, ai_fe, "Использует для доступа к аналитике")
+
+Rel(bi_platform, IdP, "Использует для аутентификации и авторизации")
+
+System_Ext(lis, "LIS", "Система лабораторной диагностики")
+System_Ext(pharma, "Pharma", "Система управления аптеками")
+
+Rel_R(his_be, gw, "REST API", "HTTPS")  
+Rel_R(gw, lis, "REST API", "HTTPS")
+Rel_R(gw, pharma, "REST API", "HTTPS")  
+
+@enduml
